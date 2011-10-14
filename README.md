@@ -44,3 +44,24 @@ If you're interested, you can find the recipes in Cakefile.
 
 - [Chosen for MooTools](https://github.com/julesjanssen/chosen), by Jules Janssen
 - [Chosen Drupal 7 Module](https://github.com/Polzme/chosen), by Pol Dell'Aiera
+
+### This Fork
+
+Adds ability to start out with an empty SELECT element that is populated by user choices that are auto-completed using AJAX requests.
+
+For example, if one starts out with a SELECT element like the one below:
+
+    <select data-placeholder="Choose a Country..." class="chzn-select chzn-dynamic" data-dynamic-search="true" style="width: 350px;"
+        data-search-url="/search/location_tokens?type=country" tabindex="2" name="single_select_chosen_country" />
+
+Then as the user types characters, AJAX requests are made to the URI "/search/location_tokens?type=country&q=al" where "al" is whatever the user has typed so far.
+
+The response expected from this AJAX request is a JSON collection that resembles this:
+
+    [{"name": "Australia", "id": 123}, {"name": "Italy", "id": 234}, {"name": "Malaysia", "id": 345}, {"name": "New Zealand", "id": 456}, {"name": "Portugal", "id": 567}]
+
+These hashes are used to dynamically create items that are then presented to the user to choose from. When the user makes a selection that item is dynamically added to the SELECT element as an OPTION element with the SELECTED attribute set, the VALUE attribute set to the ID of the item and the HTML content of the OPTION element set to the NAME of the item.
+
+That is essentially how it works. It is a quick-n-dirty solution and could have been implemented more elegantly, but I was time boxed to only a couple of days to get it working and I had never used CoffeeScript before.
+
+Good luck!
