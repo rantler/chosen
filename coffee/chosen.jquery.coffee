@@ -18,12 +18,13 @@ $.fn.extend({
     )
 })
 
-class Chosen
+class Chosen@number_of_choices
 
   constructor: (@form_field, @options={}) ->
     this.set_default_values()
 
-    @debug = null # make non-null to enable debug logging
+    @debug = null # make non-null to enable debug logging or null to disable
+    @verbose = null # make non-null to enable greatly more detailed debug logging
 
     @form_field_jq = $ @form_field
     @is_multiple = @form_field.multiple
@@ -33,8 +34,10 @@ class Chosen
     @is_dynamic = @form_field_jq.data 'dynamicSearch' if @form_field_jq.data('dynamicSearch')?
     @search_url = @form_field_jq.data 'searchUrl' if @is_dynamic and @form_field_jq.data('searchUrl')?
 
-    if @is_dynamic and @search_url
-      @dynamicSearch = new root.DynamicSearch @search_url
+    if @is_dynamic and (@search_url or @options.finder)
+      @dynamicSearch = new root.DynamicSearch @search_url || @options.finder
+    else
+      @is_dynamic = false
 
     @form_field_jq.bind('change', @options.onChange)
 
@@ -42,9 +45,12 @@ class Chosen
 
     @default_text_default = if @form_field.multiple then 'Select Some Options' else 'Select an Option'
 
+    console.log("is_dynamic = #{@is_dynamic}") if debug?
+
     this.set_up_html()
     this.register_observers()
     @form_field_jq.addClass 'chzn-done'
+
 
   set_default_values: ->
     @click_test_action = (evt) => this.test_active_click(evt)
@@ -55,8 +61,9 @@ class Chosen
     @result_highlighted = null
     @result_single_selected = null
     @allow_single_deselect = if @options.allow_single_deselect? and @form_field.options[0].text == '' then @options.allow_single_deselect else false
-    @choices = 0
+    @number_of_choices = 0
     @results_none_found = @options.no_results_text or 'No results match'
+
 
   set_up_html: ->
     @container_id = if @form_field.id.length then @form_field.id.replace(/(:|\.)/g, '_') else this.generate_field_id()
@@ -65,6 +72,8 @@ class Chosen
     @f_width = @form_field_jq.outerWidth()
 
     @default_text = if @form_field_jq.data 'placeholder' then @form_field_jq.data 'placeholder' else @default_text_default
+
+    console.log("@default_text = #{@default_text}") if @debug?
 
     container_div = ($ '<div />', {
       id: @container_id
@@ -131,6 +140,8 @@ class Chosen
       @search_choices.click (evt) => this.choices_click(evt)
       @search_field.focus (evt) => this.input_focus(evt)
 
+################################################################################################################################
+
   search_field_disabled: ->
     @is_disabled = @form_field_jq.attr 'disabled'
     if(@is_disabled)
@@ -168,17 +179,21 @@ class Chosen
   mouse_leave: -> @mouse_on_container = false
 
   input_focus: (evt) ->
+    console.log("input_focus: evt = #{evt}") if @debug?
     setTimeout (=> this.container_mousedown()), 50 unless @active_field
 
   input_blur: (evt) ->
+    console.log("input_blur: evt = #{evt}") if @debug?
     if not @mouse_on_container
       @active_field = false
       setTimeout (=> this.blur_test()), 100
 
   blur_test: (evt) ->
+    console.log("blur_test: evt = #{evt}") if @debug?
     this.close_field() if not @active_field and @container.hasClass "chzn-container-active"
 
   close_field: ->
+    console.log("close_field:") if @debug?
     $(document).unbind "click", @click_test_action
 
     if not @is_multiple
@@ -196,6 +211,7 @@ class Chosen
     this.scale_search_field()
 
   activate_field: ->
+    console.log("activate_field:") if @debug?
     if not @is_multiple and not @active_field
       @search_field.attr "tabindex", (@selected_item.attr "tabindex")
       @selected_item.attr "tabindex", -1
@@ -214,7 +230,7 @@ class Chosen
       this.close_field()
 
   searchText: ->
-    if @search_field.val() is @default_text then "" else $('<div/>').text($.trim(@search_field.val())).html()
+    if @search_field.val() is @default_text then '' else $('<div/>').text($.trim(@search_field.val())).html()
 
   results_build: (options) ->
     @parsing = true
@@ -222,13 +238,19 @@ class Chosen
 
     @results_data = root.SelectParser.select_to_array @form_field unless @is_dynamic and !options.setup
 
+    console.log("@results_data = #{JSON.stringify(@results_data)}") if @debug? && @verbose?
     console.log("@results_data.length = #{@results_data.length}") if @debug?
+    if @is_dynamic
+      @number_of_choices = @results_data.length
 
-    if @is_multiple and @choices > 0 and not @is_dynamic
+    if @is_multiple and @number_of_choices > 0 and not @is_dynamic
       @search_choices.find('li.search-choice').remove()
-      @choices = 0
-    else if not @is_multiple
-      @selected_item.find('span').text @default_text
+      @number_of_choices = 0
+    else
+      if @is_multiple
+        this.show_search_field_default()
+      else
+        @selected_item.find('span').text @default_text
 
     content = ''
     for data in @results_data
@@ -243,12 +265,12 @@ class Chosen
           @selected_item.find('span').first().after '<abbr class="search-choice-close"></abbr>' if @allow_single_deselect
 
     if this.searchText().empty() then this.search_field_disabled()
-    this.show_search_field_default()
-    this.scale_search_field()
+    this.show_search_field_default() unless @is_dynamic
+    this.scale_search_field() unless @is_dynamic
 
     @search_results.html content
     @parsing = false
-
+    this.close_field() if options.setup
 
   result_add_group: (group) ->
     if not group.disabled
@@ -272,7 +294,7 @@ class Chosen
   results_update_field: ->
     this.result_clear_highlight()
     @result_single_selected = null
-    this.results_build()
+    this.results_build({setup: true})
 
   result_do_highlight: (el) ->
     console.log("result_do_highlight - el = #{el.text()}") if @debug?
@@ -339,7 +361,9 @@ class Chosen
         @search_field.attr 'tabindex', -1
 
   show_search_field_default: ->
-    if @is_multiple and @choices < 1 and not @active_field
+    console.log("@is_multiple = #{@is_multiple}") if @debug?
+    console.log("@number_of_choices = #{@number_of_choices}") if @debug?
+    if @is_multiple and @number_of_choices < 1 and not @active_field
       @search_field.val(@default_text)
       @search_field.addClass 'default'
     else if @is_dynamic
@@ -364,14 +388,16 @@ class Chosen
 
 
   choices_click: (evt) ->
+    console.log(("choices_click - evt = #{evt}")) if @debug?
     evt.preventDefault()
     if( @active_field and not($(evt.target).hasClass 'search-choice' or $(evt.target).parents('.search-choice').first) and not @results_showing )
       this.results_show()
 
   choice_build: (item) ->
+    console.log(("choice_build - item = #{item.value}")) if @debug?
     choice_id = @container_id + '_c_' + item.array_index
-    @choices += 1
-    @search_container.before '<li class="search-choice" id="' + choice_id + '"><span>' + item.html +
+    @number_of_choices += 1 unless @is_dynamic
+    @search_container.before '<li class="search-choice" id="' + choice_id + '"><span>' + item.text +
       '</span><a href="javascript:void(0)" class="search-choice-close" rel="' + item.array_index + '"></a></li>'
     link = $('#' + choice_id).find('a').first()
     link.click (evt) => this.choice_destroy_link_click(evt)
@@ -386,45 +412,64 @@ class Chosen
       evt.stopPropagation
 
   choice_destroy: (link) ->
-    console.log("choice_destroy - @choices = #{@choices}") if @debug?
-    @choices -= 1
+    console.log("choice_destroy - @number_of_choices = #{@number_of_choices}") if @debug?
     this.show_search_field_default()
 
-    this.results_hide() if @is_multiple and @choices > 0 and @search_field.val().length < 1
+    this.results_hide() if @is_multiple and @number_of_choices > 0 and @search_field.val().length < 1
 
     this.result_deselect (link.attr 'rel')
     link.parents('li').first().remove()
     this.destroy_selected_option(link)
 
   destroy_selected_option: (link) ->
-    console.log("destroy_selected_option - link = ", link) if @debug?
+    console.log("destroy_selected_option - link = #{link}") if @debug?
     item = link.parents('li').first()
     for option in $(@form_field.options)
-      optionToRemove = option if $(option).text() == item.text()
-    $(optionToRemove).remove()
+      optionToRemove = option if $(option).val() == item.text() or $(option).text() == item.text()
+
+    console.log("destroy_selected_option - optionToRemove = #{optionToRemove}") if @debug?
+    if @is_dynamic
+      $(optionToRemove).remove()
+    else
+      $(optionToRemove).removeAttr('selected')
+
+    @number_of_choices = $(@form_field.options).length
+    @form_field_jq.trigger 'change'
+    this.show_search_field_default()
+    this.scale_search_field()
 
   destroy_all_selected_options: ->
     $(@form_field.options).remove()
+    @number_of_choices = 0
+    @form_field_jq.trigger 'change'
 
   create_selected_option: (item) ->
+    console.log("create_selected_option: item = #{item.value}") if @debug?
     option = $('<option></option>')
-    option.val(item.value).html(item.html).attr('selected', true).attr('external_id', item.external_id)
+    option.val(item.value || item.text).html(item.text).attr('selected', true).attr('external_id', item.external_id)
     option
 
   select_choice: (item) ->
-    console.log('select_choice - item = ', item) if @debug?
-    for option in $(@form_field.options)
-      selected_option = option if option.value == item.value
-    console.log("selected_option = #{$(selected_option).text()}") if @debug?
+    console.log("select_choice - item = #{item}") if @debug?
+
+    matcher_fn = (obj) ->
+      $j(obj).val().toString() == (item.value || item.text).toString()
+
+    selected_option = $j.grep(@form_field.options, matcher_fn)[0]
+    console.log("select_choice - selected_option = #{selected_option}") if @debug?
 
     if selected_option
       $(selected_option).attr('selected', true)
+      new_choice = false
     else
       selected_option = this.create_selected_option(item)
-      console.log("selected_option = #{$(selected_option).text()}") if @debug?
+      console.log("select_choice new selected_option = #{$(selected_option).text()}") if @debug?
+      this.destroy_all_selected_options() unless @is_multiple
+      @form_field_jq.append(selected_option)
+      new_choice = true
 
-    this.destroy_all_selected_options() unless @is_multiple
-    @form_field_jq.append(selected_option)
+    console.log("select_choice: new_choice = #{new_choice}") if @debug?
+    new_choice
 
   results_reset: (evt) ->
     @form_field.options[0].selected = true
@@ -451,25 +496,29 @@ class Chosen
       highlighted_element.addClass 'result-selected'
 
       position = high_id.substr(high_id.lastIndexOf('_') + 1 )
-      console.log("position = #{position}") if @debug?
+      console.log("result_select: position = #{position}") if @debug?
       item = @results_data[position]
       if item then item.selected = true
 
       if @is_dynamic
         for option in @results_data
           item = option if option.value == highlighted_element.text
-        console.log("item = #{item.value}") if @debug?
+        console.log("result_select (dynamic): item = #{item.value}") if @debug?
         this.select_choice(item)
       else
-        @form_field.options[item.options_index].selected = true
+        console.log("result_select (non-dynamic): item = #{item.value}") if @debug?
+        option = @form_field.options[item.options_index]
+        option.selected = true
+        $j(option).attr('selected', true)
 
       if @is_multiple
         this.choice_build item
       else
-        if item
+        if item and @selected_item
           @selected_item.find('span').first().text item.text
 
-        @selected_item.find('span').first().after '<abbr class="search-choice-close"></abbr>' if @allow_single_deselect
+      if @allow_single_deselect and @selected_item
+        @selected_item.find('span').first().after '<abbr class="search-choice-close"></abbr>'
 
       this.results_hide() unless evt.metaKey and @is_multiple
 
@@ -509,10 +558,13 @@ class Chosen
 
   results_search: (evt) ->
     if @is_dynamic
-      finalizer = (data, caller) ->
+      finalizer = (search, data, status, caller) ->
+        console.log("finalizer invoked") if caller.debug?
         caller.results_data = data
         caller.results_build()
+        caller.results_hide()
         caller.results_show()
+        # caller.winnow_results()
 
       @dynamicSearch.find this.searchText(), finalizer, this
       return
@@ -566,8 +618,7 @@ class Chosen
             $('#' + result_id).html text if $('#' + result_id).html != text
 
             this.result_activate $('#' + result_id)
-
-            $('#' + @results_data[option.group_array_index].dom_id).show() if option.group_array_index?
+            $('#' + @results_data[option.group_array_index].dom_id).show() if option.group_array_index? && @results_data[option.group_array_index]
           else
             this.result_clear_highlight() if @result_highlight and result_id is @result_highlight.attr 'id'
             this.result_deactivate $('#' + result_id)
@@ -589,7 +640,7 @@ class Chosen
         this.result_activate li
 
   winnow_results_set_highlight: ->
-    console.log("winnow_results_set_highlight #{@result_highlight}") if @debug?
+    console.log("winnow_results_set_highlight @result_highlight = #{@result_highlight}") if @debug?
     if not @result_highlight or @is_dynamic
 
       selected_results = if not @is_multiple then @search_results.find('.result-selected.active-result') else []
@@ -624,7 +675,7 @@ class Chosen
       if prev_sibs.length
         this.result_do_highlight prev_sibs.first()
       else
-        this.results_hide() if @choices > 0
+        this.results_hide() if @number_of_choices > 0
         this.result_clear_highlight()
 
   keydown_backstroke: ->
@@ -645,7 +696,7 @@ class Chosen
 
     switch stroke
       when 8
-        if @is_multiple and @backstroke_length < 1 and @choices > 0
+        if @is_multiple and @backstroke_length < 1 and @number_of_choices > 0
           this.keydown_backstroke()
         else if not @pending_backstroke
           this.result_clear_highlight()
