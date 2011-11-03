@@ -18,7 +18,7 @@ $.fn.extend({
     )
 })
 
-class Chosen@number_of_choices
+class Chosen
 
   constructor: (@form_field, @options={}) ->
     this.set_default_values()
@@ -269,6 +269,7 @@ class Chosen@number_of_choices
     this.scale_search_field() unless @is_dynamic
 
     @search_results.html content
+    @search_results.scrollTop(0)
     @parsing = false
     this.close_field() if options.setup
 
@@ -312,10 +313,12 @@ class Chosen@number_of_choices
       high_top = @result_highlight.position().top + @search_results.scrollTop()
       high_bottom = high_top + @result_highlight.outerHeight()
 
+      console.log("high_top = #{high_top}, visible_top = #{visible_top}") if @debug?
+
       if high_bottom >= visible_bottom
         @search_results.scrollTop if (high_bottom - maxHeight) > 0 then (high_bottom - maxHeight) else 0
       else if high_top < visible_top
-        @search_results.scrollTop high_top
+        @search_results.scrollTop 0#high_top
 
   result_clear_highlight: ->
     @result_highlight.removeClass 'highlighted' if @result_highlight
@@ -566,7 +569,7 @@ class Chosen@number_of_choices
         caller.results_show()
         # caller.winnow_results()
 
-      @dynamicSearch.find this.searchText(), finalizer, this
+      @dynamicSearch.find this.searchText(), finalizer, @options.dataStripper, this
       return
 
     if not @is_multiple and @is_dynamic

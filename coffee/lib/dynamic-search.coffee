@@ -1,10 +1,13 @@
 class DynamicSearch
   
   constructor: (@url_or_function) ->
-
-  handler: (query, tokens, response, finalizer, caller) ->
+  
+  handler: (query, tokens, response, finalizer, data_stripper, caller) ->
     data = []
     groups_added = 1
+
+    if data_stripper
+      tokens = data_stripper tokens
 
     if _.isHash(tokens)
       data.push DynamicSearch.prototype.emptyToken 0, 0
@@ -52,13 +55,13 @@ class DynamicSearch
     }
     child
 
-  find: (search, finalizer, caller) ->
+  find: (search, finalizer, data_stripper, caller) ->
     if search.length > 0
       if _.isString @url_or_function
         $j.get(@url_or_function, { q: search, parent_id: this.parent_id },
           (tokens, status, response) ->
             success = if (status == 'success') then null else { error_code: response.status }
-            DynamicSearch.prototype.handler(search, tokens, success, finalizer, caller)
+            DynamicSearch.prototype.handler(search, tokens, success, finalizer, data_stripper, caller)
           ,
         'json');
       else
@@ -66,7 +69,7 @@ class DynamicSearch
           error = null
           if response
             error = if response.status == 'success' then null else { error_code: response.status }
-          DynamicSearch.prototype.handler(search, tokens, error, finalizer, caller)
+          DynamicSearch.prototype.handler(search, tokens, error, finalizer, data_stripper, caller)
         @url_or_function.call this, search, handler
 
 this.DynamicSearch = DynamicSearch
