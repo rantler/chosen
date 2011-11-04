@@ -1,10 +1,10 @@
 ###
-Chosen source: generate output using 'cake build'
-Copyright (c) 2011 by Harvest
+  Chosen source: generate output using 'cake build'
+  Copyright (c) 2011 by Harvest
 ###
 ###
-See this wiki page for information on installing CoffeeScript compiler
-https://adready.jira.com/wiki/display/tech/Setting+up+CoffeeScript+on+Mac+OS+X
+  See this doc for information on installing CoffeeScript compiler:
+    coffee_script_setup_mac_os_x.html
 ###
 
 root = this
