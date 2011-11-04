@@ -1,0 +1,51 @@
+<style type="text/css">
+  li { margin-bottom: 1em;}
+  div { margin: 1em;}
+  code { display: block; margin-left: 1em;}
+</style>
+
+<div class="wiki-content">
+  <p>
+    These are the steps I followed to setup CoffeeScript, and Node.js on a Mac running Snow Leopard (10.6.8).
+  </p>
+  <ul>
+    <li>
+      <p>
+        Download the node.JS installation package here (I downloaded version 0.4.11).
+      </p>
+      <ul>
+        <li>
+          <a href="https://sites.google.com/site/nodejsmacosx/" class="external-link" rel="nofollow">https://sites.google.com/site/nodejsmacosx/</a>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <p>
+        Run the installer package which will install both Node and NPM.
+      </p>
+    </li>
+    <li>
+      <p>
+        Using NPM, install (using the Terminal) the coffee-script package with the command below:
+      </p>
+      <code>sudo npm install uglify-js</code>
+      <code>sudo npm install -g coffee-script</code>
+    </li>
+    <li>
+      <p>
+        Test so see if it works by compiling the chosen widget source code:
+      </p>
+      <code>cd public/javascripts/jquery/plugins/chosen</code>
+      <code>NODE_PATH=/usr/lib/node_modules cake build</code>
+    </li>
+    <li>
+      <p>
+        You should see the following output:
+      </p>
+      <code>Wrote chosen/chosen.jquery.js</code>
+      <code>Wrote chosen/chosen.jquery.min.js</code>
+      <code>Wrote chosen/chosen.proto.js</code>
+      <code>Wrote chosen/chosen.proto.min.js</code>
+    </li>
+  </ul>
+</div>
