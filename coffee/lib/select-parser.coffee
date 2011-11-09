@@ -3,7 +3,6 @@ class SelectParser
   constructor: ->
     @options_index = 0
     @parsed = []
-    @debug = null
 
   add_node: (child) ->
     if child.nodeName is "OPTGROUP"
@@ -31,7 +30,7 @@ class SelectParser
           options_index: @options_index
           value: option.value
           text: option.text
-          html: if $j(option).attr('description') then (option.text + '<p>' + $j(option).attr('description').titleize() + '</p>') else option.innerHTML
+          html: if jQuery(option).attr('description') then (option.text + '<p>' + jQuery(option).attr('description').titleize() + '</p>') else option.innerHTML
           selected: option.selected
           disabled: if group_disabled is true then group_disabled else option.disabled
           group_array_index: group_position
@@ -45,7 +44,6 @@ class SelectParser
 SelectParser.select_to_array = (select) ->
   parser = new SelectParser()
   parser.add_node( child ) for child in select.childNodes
-  console.log("SelectParser.select_to_array - parser.parsed = #{JSON.stringify(parser.parsed)}") if parser.debug?
   parser.parsed
 
 this.SelectParser = SelectParser

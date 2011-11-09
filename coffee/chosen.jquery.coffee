@@ -16,15 +16,14 @@ $.fn.extend({
     $(this).each((input_field) ->
       new Chosen(this, options) unless ($ this).hasClass 'chzn-done'
     )
+
+  debug: null # Make true or non-null to enable debug logging
 })
 
 class Chosen
 
   constructor: (@form_field, @options={}) ->
     this.set_default_values()
-
-    @debug = null # make non-null to enable debug logging or null to disable
-    @verbose = null # make non-null to enable greatly more detailed debug logging
 
     @form_field_jq = $ @form_field
     @is_multiple = @form_field.multiple
@@ -45,7 +44,7 @@ class Chosen
 
     @default_text_default = if @form_field.multiple then 'Select Some Options' else 'Select an Option'
 
-    console.log("is_dynamic = #{@is_dynamic}") if debug?
+    console.log("is_dynamic = #{@is_dynamic}") if jQuery.fn.chosen().debug?
 
     this.set_up_html()
     this.register_observers()
@@ -73,7 +72,7 @@ class Chosen
 
     @default_text = if @form_field_jq.data 'placeholder' then @form_field_jq.data 'placeholder' else @default_text_default
 
-    console.log("@default_text = #{@default_text}") if @debug?
+    console.log("@default_text = #{@default_text}") if jQuery.fn.chosen().debug?
 
     container_div = ($ '<div />', {
       id: @container_id
@@ -179,21 +178,21 @@ class Chosen
   mouse_leave: -> @mouse_on_container = false
 
   input_focus: (evt) ->
-    console.log("input_focus: evt = #{evt}") if @debug?
+    console.log("input_focus: evt = #{evt}") if jQuery.fn.chosen().debug?
     setTimeout (=> this.container_mousedown()), 50 unless @active_field
 
   input_blur: (evt) ->
-    console.log("input_blur: evt = #{evt}") if @debug?
+    console.log("input_blur: evt = #{evt}") if jQuery.fn.chosen().debug?
     if not @mouse_on_container
       @active_field = false
       setTimeout (=> this.blur_test()), 100
 
   blur_test: (evt) ->
-    console.log("blur_test: evt = #{evt}") if @debug?
+    console.log("blur_test: evt = #{evt}") if jQuery.fn.chosen().debug?
     this.close_field() if not @active_field and @container.hasClass "chzn-container-active"
 
   close_field: ->
-    console.log("close_field:") if @debug?
+    console.log("close_field:") if jQuery.fn.chosen().debug?
     $(document).unbind "click", @click_test_action
 
     if not @is_multiple
@@ -210,8 +209,8 @@ class Chosen
     this.show_search_field_default()
     this.scale_search_field()
 
-  activate_field: ->
-    console.log("activate_field:") if @debug?
+  activate_field: -> 
+    console.log("activate_field:") if jQuery.fn.chosen().debug?
     if not @is_multiple and not @active_field
       @search_field.attr "tabindex", (@selected_item.attr "tabindex")
       @selected_item.attr "tabindex", -1
@@ -221,6 +220,7 @@ class Chosen
 
     @search_field.val(@search_field.val())
     @search_field.focus()
+    @search_results.scrollTop 0
 
 
   test_active_click: (evt) ->
@@ -238,8 +238,8 @@ class Chosen
 
     @results_data = root.SelectParser.select_to_array @form_field unless @is_dynamic and !options.setup
 
-    console.log("@results_data = #{JSON.stringify(@results_data)}") if @debug? && @verbose?
-    console.log("@results_data.length = #{@results_data.length}") if @debug?
+    console.log("@results_data = #{JSON.stringify(@results_data)}") if jQuery.fn.chosen().debug?
+    console.log("@results_data.length = #{@results_data.length}") if jQuery.fn.chosen().debug?
     if @is_dynamic
       @number_of_choices = @results_data.length
 
@@ -298,7 +298,7 @@ class Chosen
     this.results_build({setup: true})
 
   result_do_highlight: (el) ->
-    console.log("result_do_highlight - el = #{el.text()}") if @debug?
+    console.log("result_do_highlight - el = #{el.text()}") if jQuery.fn.chosen().debug?
 
     if el.length
       this.result_clear_highlight()
@@ -313,12 +313,12 @@ class Chosen
       high_top = @result_highlight.position().top + @search_results.scrollTop()
       high_bottom = high_top + @result_highlight.outerHeight()
 
-      console.log("high_top = #{high_top}, visible_top = #{visible_top}") if @debug?
+      console.log("high_top = #{high_top}, visible_top = #{visible_top}") if jQuery.fn.chosen().debug?
 
       if high_bottom >= visible_bottom
         @search_results.scrollTop if (high_bottom - maxHeight) > 0 then (high_bottom - maxHeight) else 0
       else if high_top < visible_top
-        @search_results.scrollTop 0#high_top
+        @search_results.scrollTop high_top
 
   result_clear_highlight: ->
     @result_highlight.removeClass 'highlighted' if @result_highlight
@@ -343,7 +343,7 @@ class Chosen
     @search_field.focus()
     @search_field.val @search_field.val()
 
-    this.winnow_results()
+    this.winnow_results()# unless @is_dynamic
 
   results_hide: ->
     @selected_item.removeClass 'chzn-single-with-drop' unless @is_multiple
@@ -364,8 +364,8 @@ class Chosen
         @search_field.attr 'tabindex', -1
 
   show_search_field_default: ->
-    console.log("@is_multiple = #{@is_multiple}") if @debug?
-    console.log("@number_of_choices = #{@number_of_choices}") if @debug?
+    console.log("@is_multiple = #{@is_multiple}") if jQuery.fn.chosen().debug?
+    console.log("@number_of_choices = #{@number_of_choices}") if jQuery.fn.chosen().debug?
     if @is_multiple and @number_of_choices < 1 and not @active_field
       @search_field.val(@default_text)
       @search_field.addClass 'default'
@@ -391,22 +391,26 @@ class Chosen
 
 
   choices_click: (evt) ->
-    console.log(("choices_click - evt = #{evt}")) if @debug?
+    console.log(("choices_click - evt = #{evt}")) if jQuery.fn.chosen().debug?
     evt.preventDefault()
     if( @active_field and not($(evt.target).hasClass 'search-choice' or $(evt.target).parents('.search-choice').first) and not @results_showing )
       this.results_show()
 
   choice_build: (item) ->
-    console.log(("choice_build - item = #{item.value}")) if @debug?
-    choice_id = @container_id + '_c_' + item.array_index
+    console.log(("choice_build - item = #{item.value}")) if jQuery.fn.chosen().debug?
+    choice_id = @container_id + '_c_' + item.id
     @number_of_choices += 1 unless @is_dynamic
-    @search_container.before '<li class="search-choice" id="' + choice_id + '"><span>' + item.text +
-      '</span><a href="javascript:void(0)" class="search-choice-close" rel="' + item.array_index + '"></a></li>'
-    link = $('#' + choice_id).find('a').first()
-    link.click (evt) => this.choice_destroy_link_click(evt)
+    destroy_link = $('<a href="javascript:void(0)" class="search-choice-close" rel="' + item.array_index + '"></a>')
+    destroy_link.click (evt) => this.choice_destroy_link_click(evt)
+    choice_words = $('<span></span>')
+    choice_words.text(item.text)
+    choice_item = $('<li class="search-choice"></li>')
+    choice_item.append(choice_words)
+    choice_item.append(destroy_link)
+    @search_container.before choice_item
 
   choice_destroy_link_click: (evt) ->
-    console.log("choice_destroy_link_click - @is_disabled = #{@is_disabled}") if @debug?
+    console.log("choice_destroy_link_click - @is_disabled = #{@is_disabled}") if jQuery.fn.chosen().debug?
     evt.preventDefault()
     if not @is_disabled
       @pending_destroy_click = true
@@ -415,7 +419,7 @@ class Chosen
       evt.stopPropagation
 
   choice_destroy: (link) ->
-    console.log("choice_destroy - @number_of_choices = #{@number_of_choices}") if @debug?
+    console.log("choice_destroy - @number_of_choices = #{@number_of_choices}") if jQuery.fn.chosen().debug?
     this.show_search_field_default()
 
     this.results_hide() if @is_multiple and @number_of_choices > 0 and @search_field.val().length < 1
@@ -425,12 +429,12 @@ class Chosen
     this.destroy_selected_option(link)
 
   destroy_selected_option: (link) ->
-    console.log("destroy_selected_option - link = #{link}") if @debug?
+    console.log("destroy_selected_option - link = #{link}") if jQuery.fn.chosen().debug?
     item = link.parents('li').first()
     for option in $(@form_field.options)
       optionToRemove = option if $(option).val() == item.text() or $(option).text() == item.text()
 
-    console.log("destroy_selected_option - optionToRemove = #{optionToRemove}") if @debug?
+    console.log("destroy_selected_option - optionToRemove = #{optionToRemove}") if jQuery.fn.chosen().debug?
     if @is_dynamic
       $(optionToRemove).remove()
     else
@@ -447,31 +451,31 @@ class Chosen
     @form_field_jq.trigger 'change'
 
   create_selected_option: (item) ->
-    console.log("create_selected_option: item = #{item.value}") if @debug?
+    console.log("create_selected_option: item = #{item.value}") if jQuery.fn.chosen().debug?
     option = $('<option></option>')
     option.val(item.value || item.text).html(item.text).attr('selected', true).attr('external_id', item.external_id)
     option
 
   select_choice: (item) ->
-    console.log("select_choice - item = #{item}") if @debug?
+    console.log("select_choice - item = #{item}") if jQuery.fn.chosen().debug?
 
     matcher_fn = (obj) ->
-      $j(obj).val().toString() == (item.value || item.text).toString()
+      $(obj).val().toString() == (item.value || item.text).toString()
 
-    selected_option = $j.grep(@form_field.options, matcher_fn)[0]
-    console.log("select_choice - selected_option = #{selected_option}") if @debug?
+    selected_option = $.grep(@form_field.options, matcher_fn)[0]
+    console.log("select_choice - selected_option = #{selected_option}") if jQuery.fn.chosen().debug?
 
     if selected_option
       $(selected_option).attr('selected', true)
       new_choice = false
     else
       selected_option = this.create_selected_option(item)
-      console.log("select_choice new selected_option = #{$(selected_option).text()}") if @debug?
+      console.log("select_choice new selected_option = #{$(selected_option).text()}") if jQuery.fn.chosen().debug?
       this.destroy_all_selected_options() unless @is_multiple
       @form_field_jq.append(selected_option)
       new_choice = true
 
-    console.log("select_choice: new_choice = #{new_choice}") if @debug?
+    console.log("select_choice: new_choice = #{new_choice}") if jQuery.fn.chosen().debug?
     new_choice
 
   results_reset: (evt) ->
@@ -485,7 +489,7 @@ class Chosen
   result_select: (evt) ->
     if @result_highlight
       highlighted_element = @result_highlight
-      console.log("highlighted_element = #{highlighted_element.text()}") if @debug?
+      console.log("highlighted_element = #{highlighted_element.text()}") if jQuery.fn.chosen().debug?
       high_id = highlighted_element.attr 'id'
 
       this.result_clear_highlight()
@@ -499,20 +503,20 @@ class Chosen
       highlighted_element.addClass 'result-selected'
 
       position = high_id.substr(high_id.lastIndexOf('_') + 1 )
-      console.log("result_select: position = #{position}") if @debug?
+      console.log("result_select: position = #{position}") if jQuery.fn.chosen().debug?
       item = @results_data[position]
       if item then item.selected = true
 
       if @is_dynamic
         for option in @results_data
           item = option if option.value == highlighted_element.text
-        console.log("result_select (dynamic): item = #{item.value}") if @debug?
+        console.log("result_select (dynamic): item = #{item.value}") if jQuery.fn.chosen().debug?
         this.select_choice(item)
       else
-        console.log("result_select (non-dynamic): item = #{item.value}") if @debug?
+        console.log("result_select (non-dynamic): item = #{item.value}") if jQuery.fn.chosen().debug?
         option = @form_field.options[item.options_index]
         option.selected = true
-        $j(option).attr('selected', true)
+        $(option).attr('selected', true)
 
       if @is_multiple
         this.choice_build item
@@ -544,7 +548,7 @@ class Chosen
       selected_option = $(@form_field.options).select (option) ->
         return option.value == result_data.value
 
-      console.log("selected_option = #{selected_option.value}") if @debug?
+      console.log("selected_option = #{selected_option.value}") if jQuery.fn.chosen().debug?
       $(selected_option).remove
 
     else
@@ -567,8 +571,6 @@ class Chosen
         caller.results_build()
         caller.results_hide()
         caller.results_show()
-        # caller.winnow_results()
-
       @dynamicSearch.find this.searchText(), finalizer, @options.dataStripper, this
       return
 
@@ -581,6 +583,7 @@ class Chosen
       this.results_show()
 
   winnow_results: ->
+    console.log("winnow_results - searchTerm = #{this.searchText()}") if jQuery.fn.chosen().debug?
     this.no_results_clear()
 
     results = 0
@@ -591,19 +594,20 @@ class Chosen
     zregex = new RegExp(searchTerm.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'i')
 
     for option in @results_data
+      option_match_data = option.text
       if not option.disabled and not option.empty
         if option.group
-          $('#' + option.dom_id).hide()
+          $('#' + option.dom_id).hide() unless @is_dynamic# and option.children.length > 0
         else if not (@is_multiple and option.selected)
           found = false
           result_id = option.dom_id
 
-          if regex.test option.html
+          if regex.test option_match_data
             found = true
             results += 1
-          else if option.html.indexOf(' ') >= 0 or option.html.indexOf('[') == 0
+          else if option_match_data.indexOf(' ') >= 0 or option_match_data.indexOf('[') == 0
             #TODO: replace this substitution of /\[\]/ with a list of characters to skip.
-            parts = option.html.replace(/\[|\]/g, '').split ' '
+            parts = option_match_data.replace(/\[|\]/g, '').split ' '
             if parts.length
               for part in parts
                 if regex.test part
@@ -611,20 +615,20 @@ class Chosen
                   results += 1
 
           if found
+            $('#' + option.dom_id).show() if results >= 1
             if searchTerm.length
-              startpos = option.html.search zregex
-              text = option.html.substr(0, startpos + searchTerm.length) + '</em>' + option.html.substr(startpos + searchTerm.length)
+              startpos = option_match_data.search zregex
+              text = option_match_data.substr(0, startpos + searchTerm.length) + '</em>' + option_match_data.substr(startpos + searchTerm.length)
               text = text.substr(0, startpos) + '<em>' + text.substr(startpos)
             else
-              text = option.html
-
-            $('#' + result_id).html text if $('#' + result_id).html != text
+              text = option_match_data
 
             this.result_activate $('#' + result_id)
             $('#' + @results_data[option.group_array_index].dom_id).show() if option.group_array_index? && @results_data[option.group_array_index]
           else
             this.result_clear_highlight() if @result_highlight and result_id is @result_highlight.attr 'id'
             this.result_deactivate $('#' + result_id)
+            $('#' + option.dom_id).hide() unless @is_dynamic# and (option.group and option.children.length > 0)
 
     if results < 1 and searchTerm.length
       this.no_results searchTerm
@@ -643,12 +647,11 @@ class Chosen
         this.result_activate li
 
   winnow_results_set_highlight: ->
-    console.log("winnow_results_set_highlight @result_highlight = #{@result_highlight}") if @debug?
+    console.log("winnow_results_set_highlight @result_highlight = #{@result_highlight}") if jQuery.fn.chosen().debug?
     if not @result_highlight or @is_dynamic
-
       selected_results = if not @is_multiple then @search_results.find('.result-selected.active-result') else []
       element_to_highlight = if selected_results.length then selected_results.first() else @search_results.find('.active-result').first()
-      console.log("element_to_highlight = #{element_to_highlight}") if @debug?
+      console.log("element_to_highlight ", element_to_highlight) if jQuery.fn.chosen().debug?
       this.result_do_highlight element_to_highlight if element_to_highlight?
 
   no_results: (terms) ->

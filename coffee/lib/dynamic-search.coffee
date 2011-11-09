@@ -29,6 +29,7 @@ class DynamicSearch
     { array_index: array_index, options_index: options_index, empty: true }
 
   group_token: (name, index, number_of_children) ->
+    console.log("group_token: name = #{name}, index = #{index}, number_of_children = #{number_of_children}") if jQuery.fn.chosen().debug?
     group = {
       array_index: index,
       group: true,
@@ -58,7 +59,9 @@ class DynamicSearch
   find: (search, finalizer, data_stripper, caller) ->
     if search.length > 0
       if _.isString @url_or_function
-        $j.get(@url_or_function, { q: search, parent_id: this.parent_id },
+        # jQuery(document).ajaxError (err, jqxhr, settings, exception) ->
+          # alert("error: " + err + "\njqxhr: " + jqxhr + "\nsettings.url: " + settings.url + "\nexception: " + exception)
+        jQuery.get(@url_or_function, { q: search, parent_id: this.parent_id },
           (tokens, status, response) ->
             success = if (status == 'success') then null else { error_code: response.status }
             DynamicSearch.prototype.handler(search, tokens, success, finalizer, data_stripper, caller)
