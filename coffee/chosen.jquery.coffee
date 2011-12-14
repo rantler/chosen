@@ -244,7 +244,7 @@ class Chosen
     if @is_dynamic
       @number_of_choices = @results_data.length
 
-    if @is_multiple and @number_of_choices > 0 and not @is_dynamic
+    if (@is_dynamic and options.setup) or (@is_multiple and @number_of_choices > 0 and not @is_dynamic)
       @search_choices.find('li.search-choice').remove()
       @number_of_choices = 0
     else
