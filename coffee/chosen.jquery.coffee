@@ -220,8 +220,6 @@ class Chosen
 
     @search_field.val(@search_field.val())
     @search_field.focus()
-    @search_results.scrollTop 0
-
 
   test_active_click: (evt) ->
     if $(evt.target).parents('#' + @container_id).length
@@ -231,6 +229,9 @@ class Chosen
 
   searchText: ->
     if @search_field.val() is @default_text then '' else $('<div/>').text($.trim(@search_field.val())).html()
+
+  searchTextNoTrim: ->
+    if @search_field.val() is @default_text then '' else $('<div/>').text(@search_field.val()).html()
 
   results_build: (options) ->
     @parsing = true
@@ -370,7 +371,7 @@ class Chosen
       @search_field.val(@default_text)
       @search_field.addClass 'default'
     else if @is_dynamic
-      @search_field.val(this.searchText())
+      @search_field.val(this.searchTextNoTrim())
       @search_field.addClass 'default'
     else
       @search_field.val('')
@@ -507,11 +508,12 @@ class Chosen
       item = @results_data[position]
       if item then item.selected = true
 
+      newselection = true
       if @is_dynamic
         for option in @results_data
           item = option if option.value == highlighted_element.text
         console.log("result_select (dynamic): item = #{item.value}") if jQuery.fn.chosen().debug?
-        this.select_choice(item)
+        newselection = this.select_choice(item)
       else
         console.log("result_select (non-dynamic): item = #{item.value}") if jQuery.fn.chosen().debug?
         option = @form_field.options[item.options_index]
@@ -519,7 +521,8 @@ class Chosen
         $(option).attr('selected', true)
 
       if @is_multiple
-        this.choice_build item
+        if newselection
+          this.choice_build item
       else
         if item and @selected_item
           @selected_item.find('span').first().text item.text
@@ -533,6 +536,7 @@ class Chosen
 
       @form_field_jq.trigger 'change'
       this.scale_search_field()
+      @search_results.scrollTop 0
 
   result_activate: (el) ->
     el.addClass('active-result')
@@ -602,7 +606,8 @@ class Chosen
           found = false
           result_id = option.dom_id
 
-          if regex.test option_match_data
+          # if dynamic, let us allow all to be selected, since it is already pruned to active list
+          if @is_dynamic or (regex.test option_match_data)
             found = true
             results += 1
           else if option_match_data.indexOf(' ') >= 0 or option_match_data.indexOf('[') == 0

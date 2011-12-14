@@ -76,3 +76,5 @@ class DynamicSearch
         @url_or_function.call this, search, handler
 
 this.DynamicSearch = DynamicSearch
+
+jQuery.support.cors = true
