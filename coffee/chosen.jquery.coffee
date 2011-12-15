@@ -115,7 +115,7 @@ class Chosen
       sf_width = dd_width - get_side_border_padding(@search_container) - get_side_border_padding(@search_field)
       @search_field.css( {"width" : sf_width + "px"} )
 
-    this.results_build({setup: true})
+    this.results_build({initializing: true})
     this.set_tab_index()
 
 
@@ -237,16 +237,18 @@ class Chosen
     @parsing = true
     options ||= {}
 
-    @results_data = root.SelectParser.select_to_array @form_field unless @is_dynamic and !options.setup
+    @results_data = root.SelectParser.select_to_array @form_field unless @is_dynamic and not options.initializing
 
     console.log("@results_data = #{JSON.stringify(@results_data)}") if jQuery.fn.chosen().debug?
     console.log("@results_data.length = #{@results_data.length}") if jQuery.fn.chosen().debug?
+
     if @is_dynamic
       @number_of_choices = @results_data.length
+      console.log("results_build: setting @number_of_choices to #{@number_of_choices}") if jQuery.fn.chosen().debug?
 
-    if (@is_dynamic and options.setup) or (@is_multiple and @number_of_choices > 0 and not @is_dynamic)
+    if (@is_dynamic and options.initializing) or (@is_multiple and @number_of_choices > 0 and not @is_dynamic)
       @search_choices.find('li.search-choice').remove()
-      @number_of_choices = 0
+      # @number_of_choices = 0  # Resetting this value to zero upsets the initial state of the control when pre-existing choices are present (i.e. default values or revisiting the same page due to validation errors)
     else
       if @is_multiple
         this.show_search_field_default()
@@ -272,7 +274,7 @@ class Chosen
     @search_results.html content
     @search_results.scrollTop(0)
     @parsing = false
-    this.close_field() if options.setup
+    this.close_field() if options.initializing
 
   result_add_group: (group) ->
     if not group.disabled
@@ -296,7 +298,7 @@ class Chosen
   results_update_field: ->
     this.result_clear_highlight()
     @result_single_selected = null
-    this.results_build({setup: true})
+    this.results_build({initializing: true})
 
   result_do_highlight: (el) ->
     console.log("result_do_highlight - el = #{el.text()}") if jQuery.fn.chosen().debug?
@@ -365,8 +367,8 @@ class Chosen
         @search_field.attr 'tabindex', -1
 
   show_search_field_default: ->
-    console.log("@is_multiple = #{@is_multiple}") if jQuery.fn.chosen().debug?
-    console.log("@number_of_choices = #{@number_of_choices}") if jQuery.fn.chosen().debug?
+    console.log("show_search_field_default: @is_multiple = #{@is_multiple}") if jQuery.fn.chosen().debug?
+    console.log("show_search_field_default: @number_of_choices = #{@number_of_choices}") if jQuery.fn.chosen().debug?
     if @is_multiple and @number_of_choices < 1 and not @active_field
       @search_field.val(@default_text)
       @search_field.addClass 'default'
@@ -394,7 +396,7 @@ class Chosen
   choices_click: (evt) ->
     console.log(("choices_click - evt = #{evt}")) if jQuery.fn.chosen().debug?
     evt.preventDefault()
-    if( @active_field and not($(evt.target).hasClass 'search-choice' or $(evt.target).parents('.search-choice').first) and not @results_showing )
+    if (@active_field and not($(evt.target).hasClass 'search-choice') or ($(evt.target).parents('.search-choice').first) and not @results_showing)
       this.results_show()
 
   choice_build: (item) ->
@@ -453,7 +455,7 @@ class Chosen
 
   create_selected_option: (item) ->
     console.log("create_selected_option: item = #{item.value}") if jQuery.fn.chosen().debug?
-    option = $('<option></option>')
+    option = $('<option selected="selected"></option>')
     option.val(item.value || item.text).html(item.text).attr('selected', true).attr('external_id', item.external_id)
     option
 
@@ -783,7 +785,7 @@ class Chosen
     string
 
   generate_random_char: ->
-    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZ';
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZ'
     rand = Math.floor(Math.random() * chars.length)
     newchar = chars.substring rand, rand + 1
 

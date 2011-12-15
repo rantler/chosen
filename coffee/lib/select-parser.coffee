@@ -5,7 +5,7 @@ class SelectParser
     @parsed = []
 
   add_node: (child) ->
-    if child.nodeName is "OPTGROUP"
+    if child.nodeName is 'OPTGROUP'
       this.add_group child
     else
       this.add_option child
@@ -18,11 +18,11 @@ class SelectParser
       label: group.label
       children: 0
       disabled: group.disabled
-    this.add_option( option, group_position, group.disabled ) for option in group.childNodes
+    this.add_option(option, group_position, group.disabled) for option in group.childNodes
 
   add_option: (option, group_position, group_disabled) ->
-    if option.nodeName is "OPTION"
-      if option.text != ""
+    if option.nodeName is 'OPTION'
+      if option.text != ''
         if group_position?
           @parsed[group_position].children += 1
         @parsed.push
@@ -43,7 +43,7 @@ class SelectParser
 
 SelectParser.select_to_array = (select) ->
   parser = new SelectParser()
-  parser.add_node( child ) for child in select.childNodes
+  parser.add_node(child) for child in select.childNodes
   parser.parsed
 
 this.SelectParser = SelectParser
