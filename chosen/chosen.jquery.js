@@ -1025,7 +1025,7 @@
     };
     DynamicSearch.prototype.find = function(search, finalizer, caller) {
       if (search.length > 0) {
-        return $j.get(this.url, {
+        return jQuery.get(this.url, {
           q: search,
           parent_id: this.parent_id
         }, function(tokens, status, response) {
