@@ -307,7 +307,7 @@
           }
         }
       }
-      if (this.searchText().empty()) {
+      if (jQuery(this.searchText()).empty()) {
         this.search_field_disabled();
       }
       this.show_search_field_default();
